@@ -19,17 +19,17 @@ import org.apache.http.protocol.HTTP;
 import android.os.Handler;
 import android.util.Log;
 
-public class ConnectServer {
+public class ConnectDriver {
 	public String result;
     public InputStream is;
     public StringBuilder sb;
     public String responseBody;
     public boolean connected = false;
     public Handler mHandler;
-    public final static String ACCOUNT = "account";
+    public final static String ID = "ID";
     private List<NameValuePair>  sendingPara;
     
-	public ConnectServer(Handler AmHandler){
+	public ConnectDriver(Handler AmHandler){
 		result = null;
 	    is = null;
 	    sb=null;
@@ -56,11 +56,11 @@ public class ConnectServer {
 		return para;
 	}
 	
-	public String[] getInfo(String account){ // get the information and store as an ArrayList
+	public String[] getInfo(String ID){ // get the information and store as an ArrayList
 		
 		resetSendingData();
 		sendingPara.add(new BasicNameValuePair("option", "GetInfo"));
-		sendingPara.add(new BasicNameValuePair("account", account));
+		sendingPara.add(new BasicNameValuePair("ID", ID));
 		
 		Log.i("MSG","finish setting sending data" + sendingPara);
 		
@@ -76,10 +76,10 @@ public class ConnectServer {
 		resetSendingData();
 		sendingPara.add(new BasicNameValuePair("option", "Insert"));
 		sendingPara.add(new BasicNameValuePair("ID", stringPara[0]));
-		sendingPara.add(new BasicNameValuePair("account", stringPara[1]));
-		sendingPara.add(new BasicNameValuePair("password", stringPara[2]));
-		sendingPara.add(new BasicNameValuePair("latitude", stringPara[3]));
-		sendingPara.add(new BasicNameValuePair("longitude", stringPara[4]));
+		sendingPara.add(new BasicNameValuePair("password", stringPara[1]));
+		sendingPara.add(new BasicNameValuePair("Name", stringPara[2]));
+		sendingPara.add(new BasicNameValuePair("Latitude", stringPara[3]));
+		sendingPara.add(new BasicNameValuePair("Longitude", stringPara[4]));
 		
 		String boolBack = postServer();
 		
@@ -91,10 +91,10 @@ public class ConnectServer {
 		}
 	}
 	
-	public boolean verify(String account, String password){
+	public boolean verify(String ID, String password){
 		resetSendingData();
 		sendingPara.add(new BasicNameValuePair("option", "Verify"));
-		sendingPara.add(new BasicNameValuePair("account", account));
+		sendingPara.add(new BasicNameValuePair("ID", ID));
 		sendingPara.add(new BasicNameValuePair("password", password));
 		
 		String boolBack = postServer();
@@ -106,11 +106,11 @@ public class ConnectServer {
 		}
 	}
 	
-	public boolean modifyData(String option, String value, String account){
+	public boolean modifyData(String option, String value, String ID){
 		resetSendingData();
 		
 		sendingPara.add(new BasicNameValuePair("option", "Modify"));
-		sendingPara.add(new BasicNameValuePair("account", account));
+		sendingPara.add(new BasicNameValuePair("ID", ID));
 		sendingPara.add(new BasicNameValuePair("column", option));
 		sendingPara.add(new BasicNameValuePair(option, value));
 		Log.i("Connect", value);
@@ -123,16 +123,16 @@ public class ConnectServer {
 			}
 		}
 	
-	public boolean modifyData(String option, int value, String account){
+	public boolean modifyData(String option, int value, String ID){
 		resetSendingData();
 		
 		sendingPara.add(new BasicNameValuePair("option", "Modify"));
-		sendingPara.add(new BasicNameValuePair("account", account));
+		sendingPara.add(new BasicNameValuePair("ID", ID));
 		sendingPara.add(new BasicNameValuePair("column", option));
 		sendingPara.add(new BasicNameValuePair(option, Integer.toString(value))); // convert to string
 		
 		String boolBack = postServer();
-		updateDateTime(account);
+		updateDateTime(ID);
 		if(boolBack.charAt(0) == 'P')
 			return true;
 		else{
@@ -142,11 +142,11 @@ public class ConnectServer {
 		
 	}
 	
-	public boolean updateDateTime(String account){
+	public boolean updateDateTime(String ID){
 		resetSendingData();
 		
 		sendingPara.add(new BasicNameValuePair("option", "DateTime"));
-		sendingPara.add(new BasicNameValuePair("account", account));
+		sendingPara.add(new BasicNameValuePair("ID", ID));
 		
 		String boolBack = postServer();
 		if(boolBack.charAt(0) == 'P')
@@ -181,7 +181,44 @@ public class ConnectServer {
 		
 		return size;
 	}
-
+	
+	public String[] getSelfInfo(){
+		try{
+	    	HttpClient httpclient = new DefaultHttpClient();
+	    	HttpPost httppost = new HttpPost("http://ihome.ust.hk/~fyu/cgi-bin/	.php");
+	    	httppost.setEntity(new UrlEncodedFormEntity(sendingPara,HTTP.UTF_8));
+	    	HttpResponse response = httpclient.execute(httppost);
+	    	HttpEntity entity = response.getEntity();
+	    	is = entity.getContent();
+	    	//responseBody = EntityUtils.toString(entity);
+	
+	    }catch(Exception e){
+	    	Log.e("log_tag", "Error in http connection"+e.toString());
+	    }
+		try{
+	    	BufferedReader reader = new BufferedReader(new InputStreamReader(is,"UTF-8"),8);
+	    	sb = new StringBuilder();
+	    	sb.append(reader.readLine() + "\n");
+	    	String line="0";
+	    	
+	    	while ((line = reader.readLine()) != null) {
+	    		sb.append(line + "\n");
+	    	}
+	    	
+	    	is.close();
+	    	result=sb.toString();
+	    	
+	    	}catch(Exception e){
+	    		Log.e("log_tag", "Error converting result "+e.toString());
+	    	}
+	    Log.i("Returning", result);
+	    String serverOut = postServer();
+		String delims = "`";
+		
+		String[] para = serverOut.split(delims);
+		
+		return para;
+	}
 	
     private String postServer(){ // send the information stored in the class
 	    try{

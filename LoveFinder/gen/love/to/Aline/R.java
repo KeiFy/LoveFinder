@@ -20,8 +20,10 @@ public final class R {
     }
     public static final class id {
         public static final int account=0x7f060001;
+        public static final int aline=0x7f060005;
         public static final int btnConfirm=0x7f060003;
         public static final int changeWords=0x7f060004;
+        public static final int feiy=0x7f060006;
         public static final int mapview=0x7f060000;
         public static final int password=0x7f060002;
     }

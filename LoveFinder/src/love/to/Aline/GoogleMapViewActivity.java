@@ -1,25 +1,18 @@
 package love.to.Aline;
 
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
 import love.to.Aline.BackgroundService.BackgroundBinder;
-
-import com.google.android.maps.GeoPoint;
-import com.google.android.maps.MapActivity;
-import com.google.android.maps.MapView;
-import com.google.android.maps.Overlay;
-import com.google.android.maps.OverlayItem;
-
 import android.app.AlertDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
-import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.os.Bundle;
 import android.os.Handler;
@@ -33,6 +26,13 @@ import android.view.MenuItem;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import com.google.android.maps.GeoPoint;
+import com.google.android.maps.MapActivity;
+import com.google.android.maps.MapController;
+import com.google.android.maps.MapView;
+import com.google.android.maps.Overlay;
+import com.google.android.maps.OverlayItem;
+
 public class GoogleMapViewActivity extends MapActivity {
 
 	final public Messenger BackgroundMessager = new Messenger(new inComingHandler());
@@ -42,6 +42,8 @@ public class GoogleMapViewActivity extends MapActivity {
 	private boolean isStarted = false;
 	public BackgroundService mBackgroundService = null;
 	public int ID;
+	public MapController mMapController;
+	public List<GeoPoint> GeoList;
 
 	public String account;
 	
@@ -69,8 +71,10 @@ public class GoogleMapViewActivity extends MapActivity {
 	    MapView mapView = (MapView) findViewById(R.id.mapview);
 	    mapView.setBuiltInZoomControls(true);
 	    mapOverlays = mapView.getOverlays();
-    
-	    
+	    mMapController = mapView.getController();
+	    GeoList = new ArrayList<GeoPoint>();
+	    GeoList.add(new GeoPoint(0,0));
+	    GeoList.add(new GeoPoint(0,0));
 	}
 	
 	protected void onResume() {
@@ -114,15 +118,22 @@ public class GoogleMapViewActivity extends MapActivity {
     	MenuInflater inflater = getMenuInflater(); // popup menu
     	inflater.inflate(R.menu.menu, menu); // find the location of the menu
     	return true;
-    
     }
     
     public boolean onOptionsItemSelected(MenuItem item) {
     	switch (item.getItemId()) {
     	case R.id.changeWords :
-    			promotInput();
+    		promotInput();
     		return true;
-    	}
+    	case R.id.aline:
+    		mMapController.animateTo(GeoList.get(1));
+    		mMapController.setZoom(15);
+    		return true;   	
+	    case R.id.feiy:
+			mMapController.animateTo(GeoList.get(0));
+			mMapController.setZoom(15);
+			return true;
+		}
     	return false;
     }
 	
@@ -160,16 +171,16 @@ public class GoogleMapViewActivity extends MapActivity {
 		//TODO a function that directly adding up all the overlay of people in the database
 		
 		// id ; account ; Date ; Time ; State ; lattitude ; longtitude
-		
 		int id = m_idMap.get(perInfo[0]).intValue();
 		Drawable drawable = this.getResources().getDrawable(id);
-	    MyItemizedOverlay itemizedoverlay = new MyItemizedOverlay(drawable, this);	   
+		MyItemizedOverlay itemizedoverlay = new MyItemizedOverlay(drawable, this);	   
 	    
 	    GeoPoint point = new GeoPoint(Integer.parseInt(perInfo[5]),Integer.parseInt(perInfo[6]));
 	    OverlayItem overlayitem = new OverlayItem(point, "Last Active Time: " + perInfo[2] + " " + perInfo[3] , perInfo[4]);
 	    
 	    itemizedoverlay.addOverlay(overlayitem);
 	    mapOverlays.add(itemizedoverlay);
+	    GeoList.set(Integer.parseInt(perInfo[0])-1,point);
 	}
 	
 	

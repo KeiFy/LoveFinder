@@ -6,4 +6,12 @@
 		android:id="@+id/changeWords"
 		android:title="Change Your Words "
 		android:orderInCategory="1"/>
+       <item 
+		android:id="@+id/aline"
+		android:title="Find Aline"
+		android:orderInCategory="2"/>
+       <item 
+		android:id="@+id/feiy"
+		android:title="Find Fei"
+		android:orderInCategory="3"/>
     </menu>
