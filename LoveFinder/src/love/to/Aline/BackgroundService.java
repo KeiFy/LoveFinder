@@ -1,8 +1,14 @@
 package love.to.Aline;
 
+import java.io.IOException;
+import java.util.List;
+
+import love.to.Aline.dao.ConnectServer;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.location.Address;
+import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
@@ -33,6 +39,8 @@ public class BackgroundService extends Service {
 	private Location currentBest = null;
 	public ConnectServer mConnectServer;
 	public String account = null;
+	
+	private Geocoder mGeocoder;
 	
 	
 	public void onCreate() {
@@ -110,6 +118,11 @@ public class BackgroundService extends Service {
 	
 	
 	public void startRun(String InAccount) {
+		
+		/* depreciated
+		
+		*/
+		mGeocoder = new Geocoder(this);
 		if (isStarted)
 			return;
 		account = InAccount;
@@ -129,9 +142,30 @@ public class BackgroundService extends Service {
 		{
 			int intLatitude = (int) (lastKnownLocation.getLatitude()*1000000);
 			int intLongitude= (int) (lastKnownLocation.getLongitude()*1000000);
-			Log.i("MESSAGE", "Modifying information");
-			mConnectServer.modifyData("latitude", intLatitude, account);
+			Log.i("MESSAGE", "Modifying information");		
+			
+			String address = null;
+			List<Address> mAddress = null;
+		    try {
+		    	double La = lastKnownLocation.getLatitude();
+		    	double Lo = lastKnownLocation.getLongitude();
+				mAddress = mGeocoder.getFromLocation(La,Lo,1);
+			} catch (NumberFormatException e) {
+				Log.e("Location format Error", "Geocoder get the wrong format of input");
+				e.printStackTrace();
+			} catch (IOException e) {
+				Log.e("Geocoder", "Geocoder IO Exception Error");
+				e.printStackTrace();
+			}
+		    if (mAddress.size() != 0){
+		    	address = mAddress.get(0).getAddressLine(0) + " " + mAddress.get(0).getAddressLine(1);
+		    	//ToastString(address);
+		    }
+		    Log.d("address", address);
+		    mConnectServer.modifyData("latitude", intLatitude, account);
 			mConnectServer.modifyData("longitude",intLongitude, account);
+			mConnectServer.modifyData("address",address, account);
+			
 			sendClear();
 			for (int i = 1 ; i <=sizeOfTable; i++){
 	        	String[] perInfo =  mConnectServer.getInfo(i);
@@ -165,12 +199,33 @@ public class BackgroundService extends Service {
 	
 	private LocationListener mLocationListener = new LocationListener() {
 		public void onLocationChanged(Location location) { // How to define location change? Read Google Doc
-			if(isBetterLocation(location, currentBest)){
+			if(isBetterLocation(location, currentBest) && location.getAccuracy()<60){
 				int intLatitude = (int) (location.getLatitude()*1000000);
 				int intLongitude = (int) (location.getLongitude()*1000000);
 				Log.i("MESSAGE", "Modifying information");
+				
+				String address = null;
+				List<Address> mAddress = null;
+			    try {
+			    	double La = location.getLatitude();
+			    	double Lo = location.getLongitude();
+					mAddress = mGeocoder.getFromLocation(La,Lo,1);
+				} catch (NumberFormatException e) {
+					Log.e("Location format Error", "Geocoder get the wrong format of input");
+					e.printStackTrace();
+				} catch (IOException e) {
+					Log.e("Geocoder", "Geocoder IO Exception Error");
+					e.printStackTrace();
+				}
+			    if (mAddress.size() != 0){
+			    	address = mAddress.get(0).getAddressLine(0) + " " + mAddress.get(0).getAddressLine(1);
+			    	//ToastString(address);
+			    }
+				
 				mConnectServer.modifyData("latitude", intLatitude, account);
 				mConnectServer.modifyData("longitude",intLongitude, account);
+				mConnectServer.modifyData("address",address, account);
+				
 				sendClear();
 				for (int i = 1 ; i <=sizeOfTable; i++){
 		        	String[] perInfo =  mConnectServer.getInfo(i);

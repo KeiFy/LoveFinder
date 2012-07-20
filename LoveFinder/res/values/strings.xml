@@ -3,5 +3,7 @@
 
     <string name="hello">Hello World, LoveFinderActivity!</string>
     <string name="app_name">LoveFinder</string>
+    <string name="logo">LOGO</string>
+    <string name="profile">Profile</string>
 
 </resources>

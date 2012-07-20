@@ -1,0 +1,24 @@
+Update Log
+
+Version 1.1 
+	1. Change the profile picture to Renren Picture
+	2. Update Status supported
+
+
+Version 1.2  7th May 2012
+	1. Animation to find people on the map
+	2. Chinese supported
+
+
+Version 1.3  18th June 2012
+	1. Reduced the data communication between phone and server -> hopefully solve the problem of wireless network
+	2. Loading In Progress Bar (But still need improvement)
+	3. A photo in the mainDialog with styled Status (Interface)
+	4. Database to store every status online
+
+	Possible work in the future
+		1. Tap counting Functionality 
+		2. Notification Bar with new message
+		3. Picture Sharing functionality
+		4. Shared UserName and Password
+		5. Address Decoder separate out
