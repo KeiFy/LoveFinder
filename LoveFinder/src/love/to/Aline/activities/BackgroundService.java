@@ -1,9 +1,9 @@
-package love.to.Aline;
+package love.to.Aline.activities;
 
 import java.io.IOException;
 import java.util.List;
 
-import love.to.Aline.dao.ConnectServer;
+import love.to.Aline.daos.ConnectServer;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -15,17 +15,19 @@ import android.location.LocationManager;
 import android.os.Binder;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
-public class BackgroundService extends Service { 
+public class BackgroundService extends Service {
+	
+	@SuppressWarnings("unused")
+	private static final String TAG = BackgroundService.class.getSimpleName();
 	
 	public final long DELAY_MS = 10000 ;
-	public final String Lattitude = "tagReport";
-	public final String TICKER_TEXT = "Lab 6";
 	public final String NOTIFICATION_TITLE = "Location Updated";
 	
 	public Context mContext;
@@ -41,10 +43,16 @@ public class BackgroundService extends Service {
 	public String account = null;
 	
 	private Geocoder mGeocoder;
+	private HandlerThread workerThread;
+	private Handler workerHandler;
 	
 	
 	public void onCreate() {
 		super.onCreate();
+		
+//		workerThread = new HandlerThread("connect Thread");
+//		workerHandler = new Handler(workerThread.getLooper());
+		
 		mBinder = new BackgroundBinder();
 		isStarted = false;
 		mMsgCount = 0;
@@ -53,10 +61,12 @@ public class BackgroundService extends Service {
 		
 		mConnectServer =  new ConnectServer(new Handler(){
         	public void handleMessage(Message msg){
-        		//String accnout = msg.getData().getString(ConnectServer.ACCOUNT);
-        		//TODO handler
         	}
         });
+		
+		workerThread = new HandlerThread("connect Thread");
+		workerThread.start();
+		workerHandler = new Handler(workerThread.getLooper());
 	}
 	
 	private void sendClear(){
@@ -86,7 +96,6 @@ public class BackgroundService extends Service {
 		} catch (RemoteException e) {
 			e.printStackTrace();
 		}
-		
 	}
 
 	private boolean checkValid(String[] perInfo){
@@ -103,10 +112,10 @@ public class BackgroundService extends Service {
 	public IBinder onBind(Intent intent) {
 		Bundle extras = intent.getExtras();
 		// Get messager from the Activity
-		Log.i("MESSAGE", "binding Service");
+		Log.i(TAG, "binding Service");
 		if (extras != null) {
 			GoogleMapMessenger = (Messenger) extras.get("MESSENGER");
-			Log.i("MESSAGE", "Service Binded " + GoogleMapMessenger.toString());
+			Log.i(TAG, "Service Binded " + GoogleMapMessenger.toString());
 		}
 		return mBinder;
 	}
@@ -127,24 +136,29 @@ public class BackgroundService extends Service {
 			return;
 		account = InAccount;
 		isStarted = true;
-		Log.i("Background Service","Service Running");
-		sizeOfTable = mConnectServer.getSqlSize();
-        for (int i = 1 ; i <=sizeOfTable; i++){
-        	String[] perInfo =  mConnectServer.getInfo(i);
-        	if (checkValid(perInfo))
-        		sendPerInfo(perInfo);
-        }
+		Log.i("Background Service","startRun Called");
+		
+		workerHandler.post(new Runnable(){ // get information in the background
+			public void run() {	
+				sizeOfTable = mConnectServer.getSqlSize();
+				for (int i = 1 ; i <= sizeOfTable; i++){
+		        	String[] perInfo =  mConnectServer.getInfo(i);
+		        	if (checkValid(perInfo))
+		        		BackgroundService.this.sendPerInfo(perInfo);
+				}				
+			}
+		});
+		
 		mLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 0, 0, mLocationListener);
 		mLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0, 0, mLocationListener);
 		Location lastKnownLocation = null;
 		lastKnownLocation = mLocationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
 		if (lastKnownLocation != null && isBetterLocation(lastKnownLocation,currentBest))
 		{
-			int intLatitude = (int) (lastKnownLocation.getLatitude()*1000000);
-			int intLongitude= (int) (lastKnownLocation.getLongitude()*1000000);
-			Log.i("MESSAGE", "Modifying information");		
+			final int intLatitude = (int) (lastKnownLocation.getLatitude()*1000000);
+			final int intLongitude= (int) (lastKnownLocation.getLongitude()*1000000);
+			Log.i(TAG, "Better Location find on Set up");		
 			
-			String address = null;
 			List<Address> mAddress = null;
 		    try {
 		    	double La = lastKnownLocation.getLatitude();
@@ -158,25 +172,30 @@ public class BackgroundService extends Service {
 				e.printStackTrace();
 			}
 		    if (mAddress.size() != 0){
-		    	address = mAddress.get(0).getAddressLine(0) + " " + mAddress.get(0).getAddressLine(1);
+		    	final String address = mAddress.get(0).getAddressLine(0) + " " + mAddress.get(0).getAddressLine(1);
+		    	
+		    	workerHandler.post(new Runnable(){
+					public void run() {
+						mConnectServer.modifyData("latitude", intLatitude, account);
+						mConnectServer.modifyData("longitude",intLongitude, account);
+						mConnectServer.modifyData("address",address, account);
+					}
+			    });
 		    	//ToastString(address);
 		    }
-		    Log.d("address", address);
-		    mConnectServer.modifyData("latitude", intLatitude, account);
-			mConnectServer.modifyData("longitude",intLongitude, account);
-			mConnectServer.modifyData("address",address, account);
-			
+		    //Log.d("address", address);
+
 			sendClear();
-			for (int i = 1 ; i <=sizeOfTable; i++){
-	        	String[] perInfo =  mConnectServer.getInfo(i);
-	        	
-	        	if (checkValid(perInfo))
-	        		sendPerInfo(perInfo);
-			}
-//			String[] perInfo =  mConnectServer.getInfo(1);
-//			sendPerInfo(perInfo);
-		}
-		
+			workerHandler.post(new Runnable(){
+				public void run() {	
+					for (int i = 1 ; i <= sizeOfTable; i++){
+			        	String[] perInfo =  mConnectServer.getInfo(i);
+			        	if (checkValid(perInfo))
+			        		BackgroundService.this.sendPerInfo(perInfo);
+					}				
+				}   
+			});
+		}	
 	}
 	
 	public void stopRun() {
@@ -192,7 +211,7 @@ public class BackgroundService extends Service {
 	
 	public class BackgroundBinder extends Binder {
 		public BackgroundService getService() {
-			Log.i("MESSAGE", "Returning Binder with Messenger " + GoogleMapMessenger.toString());
+			Log.i(TAG, "Returning Binder with Messenger " + GoogleMapMessenger.toString());
 			return BackgroundService.this;
 		}
 	}
@@ -200,11 +219,10 @@ public class BackgroundService extends Service {
 	private LocationListener mLocationListener = new LocationListener() {
 		public void onLocationChanged(Location location) { // How to define location change? Read Google Doc
 			if(isBetterLocation(location, currentBest) && location.getAccuracy()<60){
-				int intLatitude = (int) (location.getLatitude()*1000000);
-				int intLongitude = (int) (location.getLongitude()*1000000);
-				Log.i("MESSAGE", "Modifying information");
-				
-				String address = null;
+				final int intLatitude = (int) (location.getLatitude()*1000000);
+				final int intLongitude = (int) (location.getLongitude()*1000000);
+				Log.i(TAG, "Better Location Found");
+
 				List<Address> mAddress = null;
 			    try {
 			    	double La = location.getLatitude();
@@ -218,22 +236,30 @@ public class BackgroundService extends Service {
 					e.printStackTrace();
 				}
 			    if (mAddress.size() != 0){
-			    	address = mAddress.get(0).getAddressLine(0) + " " + mAddress.get(0).getAddressLine(1);
+			    	final String address = mAddress.get(0).getAddressLine(0) + " " + mAddress.get(0).getAddressLine(1);
 			    	//ToastString(address);
+			    	workerHandler.post(new Runnable(){
+						public void run() {
+							mConnectServer.modifyData("latitude", intLatitude, account);
+							mConnectServer.modifyData("longitude",intLongitude, account);
+							mConnectServer.modifyData("address",address, account);					
+						}						
+					});
 			    }
 				
-				mConnectServer.modifyData("latitude", intLatitude, account);
-				mConnectServer.modifyData("longitude",intLongitude, account);
-				mConnectServer.modifyData("address",address, account);
+				
 				
 				sendClear();
-				for (int i = 1 ; i <=sizeOfTable; i++){
-		        	String[] perInfo =  mConnectServer.getInfo(i);
-		        	if (checkValid(perInfo))
-		        		sendPerInfo(perInfo);
-				}
-//				String[] perInfo =  mConnectServer.getInfo(1);
-//				sendPerInfo(perInfo);
+				workerHandler.post(new Runnable(){
+					public void run() {	
+						for (int i = 1 ; i <= sizeOfTable; i++){
+				        	String[] perInfo =  mConnectServer.getInfo(i);
+				        	if (checkValid(perInfo))
+				        		BackgroundService.this.sendPerInfo(perInfo);
+						}				
+					}   
+				});
+				
 				
 //				Message msg = Message.obtain();
 //				try {

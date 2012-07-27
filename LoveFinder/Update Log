@@ -22,3 +22,7 @@ Version 1.3  18th June 2012
 		3. Picture Sharing functionality
 		4. Shared UserName and Password
 		5. Address Decoder separate out
+		
+Version 1.4 19th June 2012
+	1. Find out that Service and Activity in deed share the same main thread. Modifying connect server to separate thread to largely improve the application speed.
+	 
