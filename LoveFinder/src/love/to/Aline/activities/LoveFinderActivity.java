@@ -1,5 +1,8 @@
 package love.to.Aline.activities;
 
+import java.util.Observable;
+import java.util.Observer;
+
 import love.to.Aline.R;
 import love.to.Aline.daos.ConnectServer;
 import android.app.Activity;
@@ -16,13 +19,13 @@ import android.os.Messenger;
 import android.text.method.PasswordTransformationMethod;
 import android.util.Log;
 import android.view.View;
-import android.view.Window;
 import android.view.View.OnClickListener;
+import android.view.Window;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
 
-public class LoveFinderActivity extends Activity {
+public class LoveFinderActivity extends Activity implements Observer {
 	
 	public ConnectServer mConnectServer; // Model	
 	final public Messenger BackgroundMessager = new Messenger(new inComingHandler());
@@ -34,6 +37,8 @@ public class LoveFinderActivity extends Activity {
 	private final int GOOGLEMAP = 1;
 	private ProgressDialog dialog;
 	private boolean success = false;
+	protected String passwordInput;
+	protected String accountInput;
 	
 // In this project, we will use the Controller-View-Model framework. 
 // View Can only be modified by Controller
@@ -43,12 +48,6 @@ public class LoveFinderActivity extends Activity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        
-        runOnUiThread(new Runnable(){ 
-			public void run() {
-			    dialog = ProgressDialog.show(LoveFinderActivity.this, "", "Loading. Please wait...", true);				
-			}
-	    });
         
         requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
         setContentView(R.layout.main);
@@ -61,7 +60,7 @@ public class LoveFinderActivity extends Activity {
 	        mConnectServer = new ConnectServer(new Handler(){
 	        	public void handleMessage(Message msg){}
 	        });
-	        
+	        mConnectServer.addObserver(this);
 	        
 	        settings = getSharedPreferences(PREFS_NAME, 0);
 	        ///ToastString(settings.toString());
@@ -82,25 +81,22 @@ public class LoveFinderActivity extends Activity {
 	        btnConfirm.setOnClickListener(new OnClickListener(){
 	        	public void onClick(View view){
 	        		EditText EDacount = (EditText) findViewById(R.id.account);
-	        		String accountInput = "None";
+	        		accountInput = "None";
 	        		if(EDacount.getText().length() != 0){
 	        			
 	        			accountInput = EDacount.getText().toString();
 	        		
 	        			EditText EDpassword = (EditText) findViewById(R.id.password);
 	            		EDpassword.setTransformationMethod(new PasswordTransformationMethod());
-	            		String passwordInput = "None";
+	            		passwordInput = "None";
 	            		if(EDpassword.getText().length() != 0){
 	            			passwordInput = EDpassword.getText().toString();
-	            			
-	            			if(verify(accountInput,passwordInput)){
-	                			account = accountInput;
-	                			saveAccountInfo(account,passwordInput);
-	                			startGoogleMap(account);
-	                			
-	                		}else{
-	                			ToastString("Invalid Account or password. You are currently not registered as a friend of Aline","long");
-	                		}
+	            			verify(accountInput,passwordInput);
+	            			runOnUiThread(new Runnable(){ 
+	            				public void run() {
+	            				    dialog = ProgressDialog.show(LoveFinderActivity.this, "", "Waiting Central Server to Handle", true);				
+	            				}
+	            		    });
 	            			
 	            		}else{
 	            			ToastString("Please enter Password","short");
@@ -132,7 +128,6 @@ public class LoveFinderActivity extends Activity {
 	}
     
     private void startGoogleMap(String account){	
-    	dialog.dismiss();
 		Intent intent = new Intent(LoveFinderActivity.this, GoogleMapViewActivity.class);
 		intent.putExtra("account", account);
 		startActivityForResult(intent,GOOGLEMAP);
@@ -159,17 +154,18 @@ public class LoveFinderActivity extends Activity {
     private boolean verify(final String account, final String password){
     	if (account.equals("None") || password.equals("None"))
     		return false;
-    	else
+    	else{
     		ToastString("Verifying","short");
     		new Thread (new Runnable(){
 
 				public void run() {
 					success = mConnectServer.verify(account, password);
-					
 				}
     			
     		}).start();
+    		
     		return success;
+    	}
     }
     
     private boolean isOnline() {
@@ -190,10 +186,35 @@ public class LoveFinderActivity extends Activity {
     	super.onPause();
     }
     
+    
+    
     class inComingHandler extends Handler {
 		@Override
 		public void handleMessage(Message msg) {	
 		}
+	}
+
+
+    /**
+     * Function called when Connect Server is finisheds
+     */
+	public void update(Observable arg0, Object arg1) {
+		
+		int r = (Integer) arg1;	
+		if(r == 1)
+		{
+			// verification passed
+			account = accountInput;
+			saveAccountInfo(account,passwordInput);
+			startGoogleMap(account);
+		} else {
+			ToastString("Invalid Account or password. You are currently not registered as a friend of Aline","long");
+		}
+		if(dialog != null && dialog.isShowing())
+		{
+			dialog.dismiss();
+		}
+		
 	}
     
 }

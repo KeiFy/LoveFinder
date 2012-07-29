@@ -62,7 +62,9 @@ public class GoogleMapViewActivity extends MapActivity {
 
 	public String account;
 	private Geocoder mGeocoder = null;
-	private String address = null; 
+	private String address = null;
+
+	public boolean notFocused = true; 
 	
 	
 	@Override
@@ -76,17 +78,9 @@ public class GoogleMapViewActivity extends MapActivity {
 	    
 	    requestWindowFeature(Window.FEATURE_CUSTOM_TITLE);
 	    setContentView(R.layout.googlemapview);
-	    getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.title);
-	    /*
-	    	Show a loading for loading time 
-	    */
-	    
+	    getWindow().setFeatureInt(Window.FEATURE_CUSTOM_TITLE, R.layout.title);   
 	    
 	    Log.d(TAG, "Google Map OnCreated Called");
-
-	   
-	    
-	    
 	    
 	    Intent passedIntent = getIntent();
 	    account = passedIntent.getStringExtra("account");// get the user name of this app
@@ -111,9 +105,7 @@ public class GoogleMapViewActivity extends MapActivity {
 	    
 	    GeoList = new ArrayList<GeoPoint>();
 	    GeoList.add(new GeoPoint(0,0));
-	    GeoList.add(new GeoPoint(0,0));
-	    
-	    
+	    GeoList.add(new GeoPoint(0,0));    
 	}
 	
 	protected void onResume() {
@@ -152,7 +144,13 @@ public class GoogleMapViewActivity extends MapActivity {
 			}
 			String[] perInfo = msg.getData().getStringArray("info");
 			Log.i("Handling","Overlaying Begins " + perInfo[0].toString());
-			createOverlay(perInfo);		
+			createOverlay(perInfo);	
+			if(notFocused && GeoList.get(ID) != new GeoPoint(0,0)){ // if set already and geopoint found
+				notFocused = false;
+				mMapController.setCenter(GeoList.get(ID));
+				mMapController.setZoom(18);
+			}
+				
 		}
 	}
 	
@@ -174,11 +172,11 @@ public class GoogleMapViewActivity extends MapActivity {
     		return true;
     	case R.id.aline:
     		mMapController.animateTo(GeoList.get(1));
-    		mMapController.setZoom(15);
+    		mMapController.setZoom(18);
     		return true;   	
 	    case R.id.feiy:
 			mMapController.animateTo(GeoList.get(0));
-			mMapController.setZoom(15);
+			mMapController.setZoom(18);
 			return true;
 		}
     	return false;

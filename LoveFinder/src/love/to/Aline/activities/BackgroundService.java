@@ -45,6 +45,8 @@ public class BackgroundService extends Service {
 	private Geocoder mGeocoder;
 	private HandlerThread workerThread;
 	private Handler workerHandler;
+
+	protected boolean notCleared = false;
 	
 	
 	public void onCreate() {
@@ -138,14 +140,21 @@ public class BackgroundService extends Service {
 		isStarted = true;
 		Log.i("Background Service","startRun Called");
 		
+		sendClear();
 		workerHandler.post(new Runnable(){ // get information in the background
 			public void run() {	
 				sizeOfTable = mConnectServer.getSqlSize();
 				for (int i = 1 ; i <= sizeOfTable; i++){
 		        	String[] perInfo =  mConnectServer.getInfo(i);
-		        	if (checkValid(perInfo))
+		        	if (checkValid(perInfo)){
+		        		if(notCleared){
+		        			sendClear();
+		        			notCleared = false;
+		        		}
 		        		BackgroundService.this.sendPerInfo(perInfo);
+		        	}
 				}				
+				notCleared = true;			
 			}
 		});
 		
@@ -185,14 +194,20 @@ public class BackgroundService extends Service {
 		    }
 		    //Log.d("address", address);
 
-			sendClear();
+
 			workerHandler.post(new Runnable(){
 				public void run() {	
 					for (int i = 1 ; i <= sizeOfTable; i++){
 			        	String[] perInfo =  mConnectServer.getInfo(i);
-			        	if (checkValid(perInfo))
+			        	if (checkValid(perInfo)){
+			        		if(notCleared){
+			        			sendClear();
+			        			notCleared = false;
+			        		}
 			        		BackgroundService.this.sendPerInfo(perInfo);
+			        	}
 					}				
+					notCleared = true;
 				}   
 			});
 		}	
@@ -245,13 +260,11 @@ public class BackgroundService extends Service {
 							mConnectServer.modifyData("address",address, account);					
 						}						
 					});
-			    }
+			    }			    
 				
-				
-				
-				sendClear();
 				workerHandler.post(new Runnable(){
 					public void run() {	
+						sendClear();
 						for (int i = 1 ; i <= sizeOfTable; i++){
 				        	String[] perInfo =  mConnectServer.getInfo(i);
 				        	if (checkValid(perInfo))

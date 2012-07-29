@@ -5,10 +5,9 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Observable;
 
 import love.to.Aline.LoveFinderApp;
-import love.to.Aline.activities.BackgroundService;
-import love.to.Aline.activities.LoveFinderActivity;
 
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
@@ -26,7 +25,7 @@ import android.net.NetworkInfo;
 import android.os.Handler;
 import android.util.Log;
 
-public class ConnectServer {
+public class ConnectServer extends Observable {
 	@SuppressWarnings("unused")
 	private static final String TAG = ConnectServer.class.getSimpleName();
 	
@@ -109,9 +108,14 @@ public class ConnectServer {
 		sendingPara.add(new BasicNameValuePair("password", password));
 		
 		String boolBack = postServer();
-		if(boolBack.charAt(0) == 'P')
+		if(boolBack.charAt(0) == 'P'){
+			this.setChanged();
+			this.notifyObservers(1);
 			return true;
+		}
 		else{
+			this.setChanged();
+			this.notifyObservers(0);
 			Log.e("Msg", "Verifying " + boolBack);
 			return false;
 		}
@@ -221,7 +225,7 @@ public class ConnectServer {
 	    	HttpEntity entity = response.getEntity();
 	    	is = entity.getContent();
 	    	//responseBody = EntityUtils.toString(entity);
-	
+	    	
 	    }catch(Exception e){
 	    	Log.e("log_tag", "Error in http connection"+e.toString());
 	    }
@@ -243,8 +247,9 @@ public class ConnectServer {
 	    		Log.e("log_tag", "Error converting result "+e.toString());
 	    	}
 	    
-	    Log.i("Returning", result + "Sending" + sendingPara.toString());
+	   // Log.i("Returning", result + "Sending" + sendingPara.toString());
 	    
 	    return result;
     }
+	
 }
