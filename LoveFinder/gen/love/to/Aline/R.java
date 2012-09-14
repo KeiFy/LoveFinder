@@ -30,6 +30,7 @@ public final class R {
         public static final int feiy=0x7f07000a;
         public static final int mapview=0x7f070000;
         public static final int password=0x7f070002;
+        public static final int photo=0x7f07000b;
     }
     public static final class layout {
         public static final int createtasklayout=0x7f030000;

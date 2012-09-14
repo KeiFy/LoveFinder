@@ -8,17 +8,19 @@ import java.util.List;
 import java.util.Map;
 
 import love.to.Aline.R;
-import love.to.Aline.activities.BackgroundService.BackgroundBinder;
+import love.to.Aline.background.BackgroundService;
+import love.to.Aline.background.BackgroundService.BackgroundBinder;
 import love.to.Aline.daos.ConnectServer;
 import love.to.Aline.utils.MyItemizedOverlay;
 import android.app.Activity;
 import android.app.AlertDialog;
-import android.app.ProgressDialog;
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
+import android.content.pm.ResolveInfo;
 import android.graphics.drawable.Drawable;
 import android.location.Address;
 import android.location.Geocoder;
@@ -27,6 +29,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.provider.MediaStore;
 import android.util.Log;
 import android.view.KeyEvent;
 import android.view.Menu;
@@ -178,6 +181,9 @@ public class GoogleMapViewActivity extends MapActivity {
 			mMapController.animateTo(GeoList.get(0));
 			mMapController.setZoom(18);
 			return true;
+	    case R.id.photo:
+	    	//TODO
+	    	// enter the photo upload and choosing program
 		}
     	return false;
     }
@@ -279,4 +285,11 @@ public class GoogleMapViewActivity extends MapActivity {
         return super.onKeyDown(keyCode, event);
     }
 	
+	
+	
+	private void dispatchTakePictureIntent(int actionCode) {
+	    Intent takePictureIntent = new Intent(MediaStore.ACTION_IMAGE_CAPTURE);
+	    startActivityForResult(takePictureIntent, actionCode);
+	}
+
 }

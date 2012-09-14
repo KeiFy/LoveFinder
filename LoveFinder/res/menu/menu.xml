@@ -14,4 +14,8 @@
 		android:id="@+id/feiy"
 		android:title="Find Fei"
 		android:orderInCategory="3"/>
+       <item 
+        android:id="@+id/photo"
+        android:title="Upload a Photo"
+        android:orderInCategory="4"/>
     </menu>
